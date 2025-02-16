@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - نور الجمال</title>
+    
+    <!-- الخطوط -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap RTL -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        /* أنماط المحادثات */
+        .chat-container {
+            height: 500px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            padding: 1rem;
+        }
+
+        .chat-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        .chat-message {
+            max-width: 80%;
+            margin-bottom: 0.5rem;
+            opacity: 0;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chat-message.user {
+            align-self: flex-end;
+        }
+
+        .chat-message.admin {
+            align-self: flex-start;
+        }
+
+        .message-content {
+            padding: 1rem;
+            border-radius: 15px;
+            position: relative;
+            word-wrap: break-word;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .chat-message.user .message-content {
+            background-color: #0084ff;  /* تغيير لون خلفية رسائل المستخدم */
+            color: white;  /* تغيير لون النص إلى الأبيض */
+            border-bottom-right-radius: 5px;
+            margin-left: 20px;
+        }
+
+        .chat-message.user .message-time,
+        .chat-message.user .message-sender {
+            color: white;  /* جعل الوقت واسم المرسل باللون الأبيض في رسائل المستخدم */
+        }
+
+        .chat-message.admin .message-content {
+            background-color: #fff;
+            border-bottom-left-radius: 5px;
+            margin-right: 20px;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .message-sender {
+            font-weight: 600;
+            color: #1976d2;
+        }
+
+        .message-time {
+            color: #757575;
+            font-size: 0.75rem;
+        }
+
+        .message-text {
+            line-height: 1.5;
+        }
+
+        #chatList .list-group-item {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-right: 3px solid transparent;
+            padding: 1rem;
+        }
+
+        #chatList .list-group-item:hover {
+            background-color: #f8f9fa;
+            border-right-color: #90caf9;
+        }
+
+        #chatList .list-group-item.active {
+            background-color: #e3f2fd;
+            border-right-color: #1976d2;
+            color: #0d47a1;
+        }
+
+        .chat-header {
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+            background-color: #fff;
+        }
+
+        .chat-header-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-input {
+            border-top: 1px solid #dee2e6;
+            padding: 1rem;
+            background-color: #fff;
+        }
+
+        .chat-input form {
+            margin-bottom: 0;
+        }
+
+        .chat-input .form-control {
+            border-radius: 20px;
+            padding-right: 1rem;
+            padding-left: 1rem;
+        }
+
+        .chat-input .btn {
+            border-radius: 20px;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+            margin-left: 0.5rem;
+        }
+
+        .delete-chat-btn {
+            color: #dc3545;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .delete-chat-btn:hover {
+            color: #bd2130;
+        }
+
+        .user-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .user-status.online {
+            background-color: #4caf50;
+        }
+
+        .user-status.offline {
+            background-color: #9e9e9e;
+        }
+
+        .chat-date-divider {
+            text-align: center;
+            margin: 1rem 0;
+            position: relative;
+        }
+
+        .chat-date-divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 1px;
+            background-color: #dee2e6;
+            z-index: 1;
+        }
+
+        .chat-date-divider span {
+            background-color: #f8f9fa;
+            padding: 0 1rem;
+            color: #757575;
+            font-size: 0.875rem;
+            position: relative;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <!-- شاشة التحميل -->
+    <div id="loadingScreen" class="loading-screen d-none">
+        <div class="spinner-grow text-primary" role="status">
+            <span class="visually-hidden">جاري التحميل...</span>
+        </div>
+    </div>
+
+    <!-- شريط التنقل العلوي -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#dashboard">
+                <i class="fas fa-leaf me-2"></i>
+                لوحة التحكم
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#dashboard" data-section="dashboard">
+                            <i class="fas fa-tachometer-alt me-2"></i>الرئيسية
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#posts" data-section="posts">
+                            <i class="fas fa-newspaper me-2"></i>المنشورات
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#routines" data-section="routines">
+                            <i class="fas fa-calendar-check me-2"></i>الروتين اليومي
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#users" data-section="users">
+                            <i class="fas fa-users me-2"></i>المستخدمين
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#consultations" data-section="consultations">
+                            <i class="fas fa-comments me-2"></i>الاستشارات
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#notifications" data-section="notifications">
+                            <i class="fas fa-bell me-2"></i>إرسال إشعارات
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="d-flex">
+                    <div class="dropdown">
+                        <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-2"></i>
+                            <span id="userDisplayName">المشرف</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#profile" data-section="profile">
+                                <i class="fas fa-user me-2"></i>الملف الشخصي
+                            </a></li>
+                            <li><a class="dropdown-item" href="#settings" data-section="settings">
+                                <i class="fas fa-cog me-2"></i>الإعدادات
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><button class="dropdown-item text-danger" onclick="logout()">
+                                <i class="fas fa-sign-out-alt me-2"></i>تسجيل الخروج
+                            </button></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- المحتوى الرئيسي -->
+    <div class="container-fluid py-4">
+        <div class="main-content">
+            <!-- سيتم تحميل المحتوى هنا -->
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Configuration and App Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/admin.js"></script>
+
+    <script>
+        // التعامل مع تحميل المحادثات
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    if (this.getAttribute('href') === '#consultations') {
+                        e.preventDefault();
+                        loadConsultations();
+                    }
+                });
+            });
+        });
+
+        // تحميل المحادثات
+        async function loadConsultations() {
+            const mainContent = document.querySelector('.main-content');
+            
+            try {
+                const consultationsSnapshot = await app.db.collection('consultations')
+                    .orderBy('lastMessageTime', 'desc')
+                    .get();
+
+                let html = `
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">قائمة المحادثات</h5>
+                                </div>
+                                <div class="list-group list-group-flush" id="chatList">`;
+
+                consultationsSnapshot.forEach(doc => {
+                    const chat = doc.data();
+                    const lastMessageDate = chat.lastMessageTime ? formatDate(chat.lastMessageTime) : 'لا يوجد';
+                    html += `
+                        <div class="list-group-item list-group-item-action" 
+                             onclick="loadChat('${doc.id}')"
+                             style="cursor: pointer;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="user-status ${chat.online ? 'online' : 'offline'}"></span>
+                                    <h6 class="mb-1">${chat.userName || 'مستخدم'}</h6>
+                                    <small class="text-muted d-block">
+                                        ${lastMessageDate}
+                                    </small>
+                                </div>
+                                ${chat.unreadCount ? `
+                                    <span class="badge bg-primary rounded-pill">
+                                        ${chat.unreadCount}
+                                    </span>
+                                ` : ''}
+                            </div>
+                            <div class="mt-1 text-muted small text-truncate">
+                                ${chat.lastMessage || 'لا توجد رسائل'}
+                            </div>
+                        </div>`;
+                });
+
+                html += `
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header chat-header">
+                                    <div class="chat-header-title">
+                                        <h5 class="card-title mb-0" id="chatTitle">المحادثة</h5>
+                                        <div class="chat-actions" style="display: none;" id="chatActions">
+                                            <button class="btn btn-link text-danger p-0" onclick="confirmDeleteChat()">
+                                                <i class="fas fa-trash-alt"></i> حذف المحادثة
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="chat-container">
+                                        <div id="chatMessages" class="chat-messages">
+                                            <div class="text-center text-muted p-4">
+                                                <i class="fas fa-comments fa-3x mb-3"></i>
+                                                <p>اختر محادثة للبدء</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="chat-input">
+                                        <form id="adminChatForm" onsubmit="sendMessage(event)">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" 
+                                                       id="messageInput" placeholder="اكتب رسالتك هنا...">
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fas fa-paper-plane"></i> إرسال
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+
+                mainContent.innerHTML = html;
+
+                // تفعيل مستمع الأحداث للمحادثات
+                const chatItems = document.querySelectorAll('#chatList .list-group-item');
+                chatItems.forEach(item => {
+                    item.addEventListener('click', function() {
+                        const chatId = this.getAttribute('onclick').match(/'([^']+)'/)[1];
+                        loadChat(chatId);
+                    });
+                });
+
+            } catch (error) {
+                console.error('Error loading consultations:', error);
+                showAlert('حدث خطأ في تحميل المحادثات', 'danger');
+            }
+        }
+
+        // تأكيد حذف المحادثة
+        function confirmDeleteChat() {
+            if (confirm('هل أنت متأكد من حذف هذه المحادثة؟ لا يمكن التراجع عن هذا الإجراء.')) {
+                deleteChat();
+            }
+        }
+
+        // حذف المحادثة
+        async function deleteChat() {
+            if (!currentChatId) return;
+
+            try {
+                // حذف جميع الرسائل أولاً
+                const messagesSnapshot = await app.db.collection('consultations')
+                    .doc(currentChatId)
+                    .collection('messages')
+                    .get();
+
+                const batch = app.db.batch();
+                
+                messagesSnapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+
+                // حذف المحادثة نفسها
+                batch.delete(app.db.collection('consultations').doc(currentChatId));
+
+                await batch.commit();
+
+                showAlert('تم حذف المحادثة بنجاح', 'success');
+                
+                // إعادة تحميل المحادثات
+                loadConsultations();
+                
+                // إعادة تعيين المتغيرات
+                currentChatId = null;
+                if (chatUnsubscribe) {
+                    chatUnsubscribe();
+                    chatUnsubscribe = null;
+                }
+
+            } catch (error) {
+                console.error('Error deleting chat:', error);
+                showAlert('حدث خطأ في حذف المحادثة', 'danger');
+            }
+        }
+
+        // متغيرات عامة
+        let currentChatId = null;
+        let chatUnsubscribe = null;
+        let messageIdsSet = new Set(); // مجموعة لتخزين معرفات الرسائل المعروضة
+
+        // تحميل محادثة معينة
+        async function loadChat(chatId) {
+            currentChatId = chatId;
+            const chatMessages = document.getElementById('chatMessages');
+            const chatActions = document.getElementById('chatActions');
+            
+            // إعادة تعيين مجموعة معرفات الرسائل
+            messageIdsSet.clear();
+            
+            // إظهار أزرار التحكم بالمحادثة
+            chatActions.style.display = 'block';
+            
+            // إلغاء الاشتراك السابق إذا وُجد
+            if (chatUnsubscribe) {
+                chatUnsubscribe();
+            }
+
+            try {
+                // تحديث حالة القراءة
+                await app.db.collection('consultations').doc(chatId).update({
+                    unreadCount: 0
+                });
+
+                // تحديث العنوان
+                const chatDoc = await app.db.collection('consultations').doc(chatId).get();
+                const chatData = chatDoc.data();
+                document.getElementById('chatTitle').innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <span class="user-status ${chatData.online ? 'online' : 'offline'}"></span>
+                        ${chatData.userName || 'مستخدم'}
+                    </div>`;
+
+                // مسح الرسائل السابقة وإضافة رسالة الترحيب
+                chatMessages.innerHTML = '';
+                
+                // جلب الرسائل وعرضها
+                const messagesQuery = app.db.collection('consultations')
+                    .doc(chatId)
+                    .collection('messages')
+                    .orderBy('timestamp', 'asc');
+
+                chatUnsubscribe = messagesQuery.onSnapshot(snapshot => {
+                    let lastDate = null;
+                    
+                    snapshot.docChanges().forEach(change => {
+                        const messageId = change.doc.id;
+                        
+                        // التحقق من أن الرسالة لم يتم عرضها من قبل
+                        if (!messageIdsSet.has(messageId)) {
+                            messageIdsSet.add(messageId);
+                            
+                            const message = change.doc.data();
+                            if (!message.timestamp) return; // تجاهل الرسائل بدون توقيت
+                            
+                            const messageDate = formatDate(message.timestamp);
+                            
+                            // إضافة فاصل التاريخ إذا تغير اليوم
+                            if (messageDate !== lastDate) {
+                                const dateDiv = document.createElement('div');
+                                dateDiv.className = 'chat-date-divider';
+                                dateDiv.innerHTML = `<span>${messageDate}</span>`;
+                                chatMessages.appendChild(dateDiv);
+                                lastDate = messageDate;
+                            }
+
+                            // إنشاء عنصر الرسالة مع التوقيت الجديد
+                            const messageTime = formatTime(message.timestamp);
+                            const messageElement = document.createElement('div');
+                            messageElement.className = `chat-message ${message.isAdmin ? 'admin' : 'user'}`;
+                            messageElement.setAttribute('data-message-id', messageId);
+                            messageElement.innerHTML = `
+                                <div class="message-content">
+                                    <div class="message-header">
+                                        <span class="message-sender">${message.senderName}</span>
+                                        <span class="message-time">${messageTime}</span>
+                                    </div>
+                                    <div class="message-text">${message.content}</div>
+                                </div>
+                            `;
+                            
+                            chatMessages.appendChild(messageElement);
+                        }
+                    });
+
+                    // تمرير للأسفل بعد إضافة رسائل جديدة
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+
+                // تحديث القائمة النشطة
+                const chatItems = document.querySelectorAll('#chatList .list-group-item');
+                chatItems.forEach(item => {
+                    item.classList.remove('active');
+                    if (item.getAttribute('onclick').includes(chatId)) {
+                        item.classList.add('active');
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error loading chat:', error);
+                showAlert('حدث خطأ في تحميل المحادثة', 'danger');
+            }
+        }
+
+        // إرسال رسالة
+        async function sendMessage(event) {
+            event.preventDefault();
+            
+            if (!currentChatId) {
+                showAlert('الرجاء اختيار محادثة أولاً', 'warning');
+                return;
+            }
+
+            const messageInput = document.getElementById('messageInput');
+            const content = messageInput.value.trim();
+            
+            if (!content) return;
+
+            try {
+                const admin = app.auth.currentUser;
+                const adminDoc = await app.db.collection('users').doc(admin.uid).get();
+                
+                // إنشاء معرف فريد للرسالة
+                const messageRef = app.db.collection('consultations').doc(currentChatId)
+                    .collection('messages').doc();
+
+                const messageData = {
+                    content,
+                    senderId: admin.uid,
+                    senderName: adminDoc.data().name || 'المشرف',
+                    isAdmin: true,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                // إضافة الرسالة مباشرة إلى واجهة المستخدم
+                const chatMessages = document.getElementById('chatMessages');
+                const messageElement = document.createElement('div');
+                messageElement.className = 'chat-message admin';
+                messageElement.setAttribute('data-message-id', messageRef.id);
+                messageElement.innerHTML = `
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-sender">${messageData.senderName}</span>
+                            <span class="message-time">${new Date().toLocaleTimeString('fr-FR', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}</span>
+                        </div>
+                        <div class="message-text">${messageData.content}</div>
+                    </div>
+                `;
+                chatMessages.appendChild(messageElement);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                // حفظ الرسالة في Firestore
+                await messageRef.set(messageData);
+
+                // تحديث آخر رسالة ووقتها
+                await app.db.collection('consultations').doc(currentChatId).update({
+                    lastMessage: content,
+                    lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // إضافة معرف الرسالة إلى مجموعة الرسائل المعروضة
+                messageIdsSet.add(messageRef.id);
+
+                messageInput.value = '';
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showAlert('حدث خطأ في إرسال الرسالة', 'danger');
+            }
+        }
+
+        // دالة تنسيق التاريخ
+        function formatDate(timestamp) {
+            if (!timestamp || !timestamp.seconds) return 'غير متوفر';
+            const date = new Date(timestamp.seconds * 1000);
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+            };
+            return date.toLocaleDateString('ar-SA', options);
+        }
+
+        // دالة تنسيق الوقت
+        function formatTime(timestamp) {
+            if (!timestamp || !timestamp.seconds) return '';
+            const date = new Date(timestamp.seconds * 1000);
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+
+        // دالة عرض التنبيهات
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.main-content').prepend(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
